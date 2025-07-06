@@ -1,3 +1,20 @@
+"""
+Campaign Donor Verification Tool
+================================
+
+This Streamlit app verifies donor information using Claude's web search capabilities.
+
+Setup:
+1. Ensure your Anthropic API key is in Streamlit secrets:
+   API-KEY = "your-anthropic-api-key"
+
+2. Install dependencies:
+   pip install streamlit anthropic pandas
+
+3. Run:
+   streamlit run donor_verification_app.py
+"""
+
 import streamlit as st
 import anthropic
 import os
@@ -47,19 +64,13 @@ st.markdown("Automatically verify donor information using AI-powered web search"
 if 'verification_history' not in st.session_state:
     st.session_state.verification_history = []
 
-# Sidebar for API key
+# Sidebar configuration
 with st.sidebar:
     st.header("⚙️ Configuration")
-    api_key = st.text_input(
-        "Anthropic API Key",
-        type="password",
-        help="Enter your Anthropic API key to use the web search feature"
-    )
     
-    if api_key:
-        st.success("✅ API Key configured")
-    else:
-        st.warning("⚠️ Please enter your API key to proceed")
+    # Get API key from secrets
+    api_key = st.secrets["API-KEY"]
+    st.success("✅ API Key loaded from secrets")
     
     st.divider()
     
@@ -106,7 +117,7 @@ with col1:
 with col2:
     st.header("✅ Verification Results")
     
-    if verify_button and api_key:
+    if verify_button:
         if not name:
             st.error("Please enter at least the donor's name")
         else:
@@ -199,27 +210,24 @@ with col2:
                     
                 except Exception as e:
                     st.error(f"❌ Error during verification: {str(e)}")
-                    st.info("Please check your API key and try again.")
-    
-    elif verify_button and not api_key:
-        st.warning("⚠️ Please enter your Anthropic API key in the sidebar to use the verification feature.")
+                    st.info("Please check your internet connection and try again.")
 
 # Footer with instructions
 st.divider()
 with st.expander("📖 How to Use This Tool"):
     st.markdown("""
     ### Instructions:
-    1. **Enter your Anthropic API key** in the sidebar (required for web search functionality)
-    2. **Fill in the donor information** you want to verify
-    3. **Click "Verify Information"** to start the verification process
-    4. **Review the results** which will show what could be verified
-    5. **Download the report** for your records
+    1. **Fill in the donor information** you want to verify
+    2. **Click "Verify Information"** to start the verification process
+    3. **Review the results** which will show what could be verified
+    4. **Download the report** for your records
     
     ### Features:
     - 🔍 **Web Search Verification**: Uses Claude's web search to find public information
     - 📊 **Structured Results**: Get clear verification status for each field
     - 📜 **History Tracking**: Keep track of all verifications
     - 💾 **Export Reports**: Download verification results as JSON files
+    - 🔐 **Secure API Key**: Automatically loaded from Streamlit secrets
     
     ### Tips:
     - The more information you provide, the better the verification
