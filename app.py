@@ -58,11 +58,12 @@ col1, col2 = st.columns(2)
 with col1:
     st.header("📝 Donor Information")
     
-    name = st.text_input("Name*", placeholder="John Doe")
-    company = st.text_input("Company", placeholder="Acme Corp")
-    job_title = st.text_input("Job Title", placeholder="CEO")
-    email = st.text_input("Email", placeholder="john@example.com")
-    location = st.text_input("Location", placeholder="New York, NY")
+    name = st.text_input("Name*", value="Matthew Hanauer")
+    company = st.text_input("Company", value="MedeAnalytics")
+    job_title = st.text_input("Job Title", value="Senior Director Data Science")
+    email = st.text_input("Email", value="matthewhanauer99@gmail.com")
+    phone = st.text_input("Phone", value="260-409-5700")
+    address = st.text_input("Address", value="730 Crestview Drive, Durham, NC 27712")
     
     verify_btn = st.button("🔍 Verify", type="primary", use_container_width=True)
 
@@ -80,7 +81,8 @@ with col2:
                 - Company: {company or 'Unknown'}
                 - Title: {job_title or 'Unknown'}
                 - Email: {email or 'Unknown'}
-                - Location: {location or 'Unknown'}
+                - Phone: {phone or 'Unknown'}
+                - Address: {address or 'Unknown'}
                 
                 Use web search to check if this information is accurate.
                 Provide a brief summary of what you found."""
@@ -116,7 +118,8 @@ with col2:
                         'company': company,
                         'job_title': job_title,
                         'email': email,
-                        'location': location
+                        'phone': phone,
+                        'address': address
                     },
                     'verification': result
                 }
