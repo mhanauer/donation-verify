@@ -19,7 +19,19 @@ st.set_page_config(
 
 # Title
 st.title("🔍 Campaign Donor Verification Tool")
-st.markdown("Verify donor information using Claude's web search")
+st.markdown("Verify job titles and company affiliations using Claude's web search")
+
+# What this tool does
+with st.expander("ℹ️ What this tool does", expanded=False):
+    st.markdown("""
+    This tool helps you verify donor information by:
+    1. **Searching the web** for information about the person
+    2. **Showing you what was found** in the search results
+    3. **Comparing** the provided information with search findings
+    4. **Assessing confidence** in the job title and company verification
+    
+    The tool provides nuanced assessments (not just yes/no) with confidence levels ranging from HIGH to CANNOT CONFIRM.
+    """)
 
 # Initialize session state
 if 'history' not in st.session_state:
@@ -109,14 +121,35 @@ col1, col2 = st.columns(2)
 with col1:
     st.header("📝 Donor Information")
     
+    st.markdown("**Key Information to Verify:**")
     name = st.text_input("Name*", value=st.session_state.prefill_data['name'])
     company = st.text_input("Company", value=st.session_state.prefill_data['company'])
     job_title = st.text_input("Job Title", value=st.session_state.prefill_data['job_title'])
-    email = st.text_input("Email", value=st.session_state.prefill_data['email'])
-    phone = st.text_input("Phone", value=st.session_state.prefill_data['phone'])
-    address = st.text_input("Address", value=st.session_state.prefill_data['address'])
     
-    verify_btn = st.button("🔍 Verify", type="primary", use_container_width=True)
+    # Initialize these variables even if in expander
+    email = ""
+    phone = ""  
+    address = ""
+    
+    with st.expander("Additional Information (Optional)"):
+        email = st.text_input("Email", value=st.session_state.prefill_data['email'])
+        phone = st.text_input("Phone", value=st.session_state.prefill_data['phone'])
+        address = st.text_input("Address", value=st.session_state.prefill_data['address'])
+    
+    col_btn1, col_btn2 = st.columns(2)
+    with col_btn1:
+        verify_btn = st.button("🔍 Verify", type="primary", use_container_width=True)
+    with col_btn2:
+        if st.button("🧹 Clear", use_container_width=True):
+            st.session_state.prefill_data = {
+                'name': "",
+                'company': "",
+                'job_title': "",
+                'email': "",
+                'phone': "",
+                'address': ""
+            }
+            st.rerun()
 
 with col2:
     st.header("✅ Results")
@@ -129,24 +162,43 @@ with col2:
                 client = anthropic.Anthropic(api_key=api_key)
                 
                 # Simple query
-                query = f"""You have web search capabilities. Please search for information about {name} and verify the following details:
+                query = f"""Search for information about {name} and provide a detailed verification report.
 
-PROVIDED INFORMATION TO VERIFY:
+INFORMATION TO VERIFY:
+- Name: {name}
 - Company: {company or 'Not provided'}
 - Job Title: {job_title or 'Not provided'}
-- Email: {email or 'Not provided'}
-- Phone: {phone or 'Not provided'}
-- Address: {address or 'Not provided'}
 
-INSTRUCTIONS:
-1. Use web search to find current information about this person
-2. Compare what you find with the provided information
-3. For each piece of information, indicate:
-   - VERIFIED ✓ if it matches what you found
-   - UNVERIFIED ✗ if you couldn't find information to confirm it
-   - INCORRECT ⚠️ if it contradicts what you found
+YOUR TASK:
+1. SEARCH: Use web search to find information about this person
+2. SHOW FINDINGS: List exactly what you found in your search results (URLs, snippets, sources)
+3. COMPARE: Compare the provided information with what you found
+4. ASSESS CONFIDENCE: For the job title and company, provide a confidence assessment:
+   - HIGH CONFIDENCE: Multiple reliable sources confirm this information
+   - MODERATE CONFIDENCE: Some evidence supports this, but limited sources
+   - LOW CONFIDENCE: Little or conflicting information found
+   - CANNOT CONFIRM: No relevant information found
 
-Please provide a clear verification report with your findings."""
+FORMAT YOUR RESPONSE AS:
+
+**SEARCH FINDINGS:**
+- List each relevant search result you found
+- Include source names and what information each provided
+
+**JOB TITLE VERIFICATION:**
+Provided: {job_title or 'Not provided'}
+Found: [What you actually found]
+Confidence: [HIGH/MODERATE/LOW/CANNOT CONFIRM]
+Explanation: [Why you have this confidence level]
+
+**COMPANY VERIFICATION:**
+Provided: {company or 'Not provided'}
+Found: [What you actually found]
+Confidence: [HIGH/MODERATE/LOW/CANNOT CONFIRM]
+Explanation: [Why you have this confidence level]
+
+**ADDITIONAL NOTES:**
+Any other relevant information about this person"""
                 
                 # API call with web search
                 message = client.beta.messages.create(
@@ -164,30 +216,38 @@ Please provide a clear verification report with your findings."""
                 # Calculate elapsed time
                 elapsed_time = (datetime.now() - start_time).total_seconds()
                 
-                # Show results
-                st.success(f"✅ Verification complete! (took {elapsed_time:.1f} seconds)")
+                # Check if web search was actually performed by looking for key indicators
+                search_performed = any([
+                    "SEARCH FINDINGS:" in result,
+                    "Found:" in result,
+                    "Confidence:" in result,
+                    "sources" in result.lower(),
+                    "search results" in result.lower()
+                ])
+                
+                if not search_performed and ("I'll search" in result or "I will search" in result or "Let me search" in result):
+                    st.warning("⚠️ The web search may not have completed properly.")
+                    st.info("Try clicking Verify again. If this persists, try testing with a well-known person like 'Tim Cook' to ensure the search is working.")
+                else:
+                    # Show results
+                    st.success(f"✅ Verification complete! (took {elapsed_time:.1f} seconds)")
                 
                 # Display results in an organized way
                 with st.container():
                     st.subheader("📊 Verification Report")
                     
-                    # Show the full response
-                    with st.expander("Detailed Findings", expanded=True):
-                        st.markdown(result)
+                    # Full report
+                    st.markdown(result)
                     
-                    # Quick summary based on keywords in result
-                    verified_count = result.lower().count('verified')
-                    unverified_count = result.lower().count('unverified')
-                    incorrect_count = result.lower().count('incorrect')
-                    
-                    # Status summary
-                    col_stat1, col_stat2, col_stat3 = st.columns(3)
-                    with col_stat1:
-                        st.metric("Verified", f"{verified_count} items")
-                    with col_stat2:
-                        st.metric("Unverified", f"{unverified_count} items")
-                    with col_stat3:
-                        st.metric("Incorrect", f"{incorrect_count} items")
+                    # Extract confidence levels if present in the response
+                    if "HIGH CONFIDENCE" in result:
+                        st.success("🟢 High confidence in verification")
+                    elif "MODERATE CONFIDENCE" in result:
+                        st.warning("🟡 Moderate confidence in verification")
+                    elif "LOW CONFIDENCE" in result:
+                        st.error("🔴 Low confidence in verification")
+                    elif "CANNOT CONFIRM" in result:
+                        st.error("⚫ Cannot confirm information")
                 
                 # Save to history
                 st.session_state.history.append({
@@ -196,10 +256,11 @@ Please provide a clear verification report with your findings."""
                     'result': result
                 })
                 
-                # Download button with enhanced data
+                # Download button with focused data
                 data = {
                     'timestamp': datetime.now().isoformat(),
-                    'donor': {
+                    'verification_duration_seconds': elapsed_time,
+                    'donor_info': {
                         'name': name,
                         'company': company,
                         'job_title': job_title,
@@ -207,13 +268,12 @@ Please provide a clear verification report with your findings."""
                         'phone': phone,
                         'address': address
                     },
-                    'verification': {
-                        'full_report': result,
-                        'summary': {
-                            'verified_items': verified_count,
-                            'unverified_items': unverified_count,
-                            'incorrect_items': incorrect_count
-                        }
+                    'verification_report': result,
+                    'confidence_indicators': {
+                        'high_confidence': "HIGH CONFIDENCE" in result,
+                        'moderate_confidence': "MODERATE CONFIDENCE" in result,
+                        'low_confidence': "LOW CONFIDENCE" in result,
+                        'cannot_confirm': "CANNOT CONFIRM" in result
                     }
                 }
                 
