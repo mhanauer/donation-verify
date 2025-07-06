@@ -133,11 +133,16 @@ PERSON BEING VERIFIED:
 - Title: {title}
 - Company: {company}
 
-IMPORTANT: Base your assessment on the verification analysis provided above. If the analysis confirms the person's role and company, give HIGH confidence. If partially confirmed, give MEDIUM. If not confirmed or no information found, give LOW.
+IMPORTANT CONFIDENCE GUIDELINES:
+- HIGH: Person verified at the correct company with same or very similar role (minor title variations like VP vs SVP, Director vs Senior Director are still HIGH confidence)
+- MEDIUM: Person found but at a different company, OR significantly different role/department
+- LOW: Person not found, or no reliable information available
+
+Focus on whether the CORE information is correct (right person, right company, similar role), not minor title variations.
 
 Provide exactly these three items:
 1. VERIFICATION STATUS: A 1-2 sentence summary of what was verified vs not verified
-2. CONFIDENCE LEVEL: Choose HIGH/MEDIUM/LOW with a brief explanation based on the verification analysis
+2. CONFIDENCE LEVEL: Choose HIGH/MEDIUM/LOW with a brief explanation based on the guidelines above
 3. NEXT STEPS: A specific 1-2 sentence recommendation for action
 
 Format your response EXACTLY like this:
