@@ -1,36 +1,36 @@
 """
-Simple test script to debug Claude web search
-==============================================
-Run this separately to test if web search is working
+Minimal app that exactly matches the working console example
 """
 
+import streamlit as st
 import anthropic
-import json
 
-# Replace with your actual API key
-API_KEY = "sk-ant-api03-your-key-here"
+st.title("🔍 Donor Verification - Console Match")
 
-def test_web_search():
-    """Test if web search is working"""
-    print("Testing Claude web search...")
+# API key
+api_key = st.secrets.get("API-KEY", "")
+if not api_key:
+    st.error("Add API-KEY to secrets")
+    st.stop()
+
+# Inputs
+name = st.text_input("Name", "Matthew Hanauer")
+title = st.text_input("Title", "Senior Director Data Science")
+company = st.text_input("Company", "MedeAnalytics")
+
+if st.button("Verify"):
+    # Exact parameters from working example
+    client = anthropic.Anthropic(api_key=api_key)
     
-    client = anthropic.Anthropic(api_key=API_KEY)
+    query = f"Please verify this information is correct: {name} is {title} at {company}."
     
-    # Test queries
-    queries = [
-        "Use web_search to find what company Tim Cook works for",
-        "Search for information about Satya Nadella using web_search",
-        "web_search: What is Apple's current stock price?"
-    ]
-    
-    for i, query in enumerate(queries, 1):
-        print(f"\n--- Test {i} ---")
-        print(f"Query: {query}")
-        
+    with st.spinner("Verifying..."):
         try:
+            # Exact API call from console
             message = client.beta.messages.create(
                 model="claude-sonnet-4-20250514",
-                max_tokens=500,
+                max_tokens=20000,
+                temperature=1,
                 messages=[{
                     "role": "user",
                     "content": [{
@@ -45,47 +45,30 @@ def test_web_search():
                 betas=["web-search-2025-03-05"]
             )
             
-            result = message.content[0].text if message.content else "No response"
-            print(f"Response: {result[:200]}...")
+            # Parse response
+            st.success("Response received!")
             
-            # Check if search was executed
-            if "I'll search" in result or "I will search" in result:
-                print("❌ FAILED: Got 'I'll search' response - tool not executed")
-            elif "apple" in result.lower() or "microsoft" in result.lower():
-                print("✅ SUCCESS: Got actual search results")
-            else:
-                print("⚠️  UNCLEAR: Check full response")
-                
+            # Check for web search execution
+            search_executed = False
+            for block in message.content:
+                if hasattr(block, 'type'):
+                    if block.type == 'server_tool_use':
+                        search_executed = True
+                        st.info(f"✅ Searched for: {block.input.get('query', 'N/A')}")
+                    elif block.type == 'web_search_tool_result':
+                        st.write("**Search Results:**")
+                        for result in block.content[:5]:
+                            if hasattr(result, 'title'):
+                                st.write(f"- {result.title}")
+            
+            if not search_executed:
+                st.warning("⚠️ Web search was not executed")
+            
+            # Show text response
+            st.write("**Analysis:**")
+            for block in message.content:
+                if hasattr(block, 'type') and block.type == 'text':
+                    st.write(block.text)
+                    
         except Exception as e:
-            print(f"❌ ERROR: {str(e)}")
-
-def test_without_web_search():
-    """Test regular API call without web search"""
-    print("\n\n--- Testing WITHOUT web search ---")
-    
-    client = anthropic.Anthropic(api_key=API_KEY)
-    
-    try:
-        message = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=200,
-            messages=[{
-                "role": "user",
-                "content": "What company does Tim Cook work for? (answer based on your knowledge)"
-            }]
-        )
-        
-        result = message.content[0].text
-        print(f"Response: {result}")
-        print("✅ Regular API call works")
-        
-    except Exception as e:
-        print(f"❌ ERROR: {str(e)}")
-
-if __name__ == "__main__":
-    # Test both with and without web search
-    test_web_search()
-    test_without_web_search()
-    
-    print("\n\nIf web search tests show 'I'll search' responses, the beta feature may be unavailable.")
-    print("Use the regular API (without web search) as a fallback.")
+            st.error(f"Error: {e}")
