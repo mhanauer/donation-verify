@@ -1,7 +1,7 @@
 """
 Final Clean Donor Verification App with Summary
 ===============================================
-Includes web search verification and AI-generated summary
+Uses Claude Sonnet 4 for both web search verification and AI-generated summary
 """
 
 import streamlit as st
@@ -106,7 +106,7 @@ with col2:
                 with st.expander("📊 Detailed Verification Analysis", expanded=True):
                     st.write(verification_text)
                 
-                # Step 2: Generate Summary using regular Claude (no web search needed)
+                # Step 2: Generate Summary using Claude Sonnet 4 (no web search needed)
                 if verification_text:
                     with st.spinner("📝 Generating summary..."):
                         # Create structured prompt for summary
@@ -130,9 +130,9 @@ VERIFICATION STATUS: [Your summary]
 CONFIDENCE LEVEL: [HIGH/MEDIUM/LOW] - [Brief explanation]
 NEXT STEPS: [Your recommendation]"""
 
-                        # Get summary using Claude 3.5 Sonnet (cheaper, no web search needed)
+                        # Get summary using Claude Sonnet 4 (no web search needed)
                         summary_response = client.messages.create(
-                            model="claude-3-5-sonnet-20241022",
+                            model="claude-sonnet-4-20250514",
                             max_tokens=500,
                             temperature=0,
                             messages=[{"role": "user", "content": summary_prompt}]
